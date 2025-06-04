@@ -1,7 +1,37 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.STORE_FILE = exports.TIMEOUT = exports.POLL = exports.RELAY = void 0;
 exports.call = call;
@@ -10,19 +40,21 @@ exports.storeSession = storeSession;
 exports.loadStoredSession = loadStoredSession;
 exports.parseSessionRow = parseSessionRow;
 exports.generateQRCode = generateQRCode;
-const fs_1 = __importDefault(require("fs"));
-const qrcode_terminal_1 = __importDefault(require("qrcode-terminal"));
-const cross_fetch_1 = __importDefault(require("cross-fetch"));
 // Constants
 exports.RELAY = 'https://3stars.haus/PolymeshPocket.php';
 exports.POLL = 2000;
 exports.TIMEOUT = 5 * 60 * 1000;
 exports.STORE_FILE = 'pocket-signing-manager-store.txt';
+// Environment detection
+const isNode = typeof window === 'undefined';
 /**
  * POST wrapper for API calls
  */
 async function call(endpoint, body) {
-    const res = await (0, cross_fetch_1.default)(`${exports.RELAY}?endpoint=${endpoint}`, {
+    const fetch = isNode
+        ? (await Promise.resolve().then(() => __importStar(require('cross-fetch')))).default
+        : window.fetch;
+    const res = await fetch(`${exports.RELAY}?endpoint=${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -39,7 +71,7 @@ function sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
 }
 /**
- * Store session info to file
+ * Store session info - works in both Node.js and browser
  */
 function storeSession(sid, appName, network) {
     try {
@@ -48,20 +80,40 @@ function storeSession(sid, appName, network) {
         if (network) {
             storeData['network'] = network;
         }
-        fs_1.default.writeFileSync(exports.STORE_FILE, JSON.stringify(storeData));
-        console.log(`Session stored for ${appName} (${sid})${network ? ` on ${network}` : ''}`);
+        if (isNode) {
+            // Node.js: use file system
+            const fs = require('fs');
+            fs.writeFileSync(exports.STORE_FILE, JSON.stringify(storeData));
+            console.log(`Session stored for ${appName} (${sid})${network ? ` on ${network}` : ''}`);
+        }
+        else {
+            // Browser: use localStorage
+            localStorage.setItem('pocket-signing-manager-store', JSON.stringify(storeData));
+            console.log(`Session stored in browser for ${appName} (${sid})${network ? ` on ${network}` : ''}`);
+        }
     }
     catch (err) {
         console.error('Error storing session:', err.message);
     }
 }
 /**
- * Try to load stored session
+ * Load stored session - works in both Node.js and browser
  */
 function loadStoredSession() {
     try {
-        if (fs_1.default.existsSync(exports.STORE_FILE)) {
-            const data = fs_1.default.readFileSync(exports.STORE_FILE, 'utf8');
+        let data = null;
+        if (isNode) {
+            // Node.js: read from file
+            const fs = require('fs');
+            if (fs.existsSync(exports.STORE_FILE)) {
+                data = fs.readFileSync(exports.STORE_FILE, 'utf8');
+            }
+        }
+        else {
+            // Browser: read from localStorage
+            data = localStorage.getItem('pocket-signing-manager-store');
+        }
+        if (data) {
             const store = JSON.parse(data);
             const storedSid = Object.keys(store).find(key => key !== 'network');
             if (storedSid) {
@@ -108,17 +160,66 @@ function parseSessionRow(row) {
     return row;
 }
 /**
- * Generate and display QR code
+ * Generate and display QR code - works in both environments
  */
-function generateQRCode(appName, sid, network) {
+async function generateQRCode(appName, sid, network) {
     const qrPayload = Buffer
         .from(JSON.stringify({ appName, sid, network }))
         .toString('base64');
-    console.log(`\nScan this QR with Pocket Wallet for ${network}:\n`);
-    qrcode_terminal_1.default.generate(qrPayload, { small: true });
-    console.log();
-    console.log('Base64 encoded QR content:');
-    console.log(qrPayload);
-    console.log();
+    if (isNode) {
+        // Node.js: use qrcode-terminal
+        const qrcode = require('qrcode-terminal');
+        console.log(`\nScan this QR with Pocket Wallet for ${network}:\n`);
+        qrcode.generate(qrPayload, { small: true });
+        console.log();
+        console.log('Base64 encoded QR content:');
+        console.log(qrPayload);
+        console.log();
+    }
+    else {
+        // Browser: show QR payload and instructions
+        console.log(`\n🔗 Pocket Wallet Connection for ${network}:`);
+        console.log('📱 QR Code Data (scan with Pocket Wallet):');
+        console.log(qrPayload);
+        console.log();
+        // Create a simple QR display element if DOM is available
+        if (typeof document !== 'undefined') {
+            const existingQR = document.getElementById('pocket-qr-display');
+            if (existingQR) {
+                existingQR.remove();
+            }
+            const qrDiv = document.createElement('div');
+            qrDiv.id = 'pocket-qr-display';
+            qrDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 20px;
+        border: 2px solid #333;
+        border-radius: 8px;
+        z-index: 10000;
+        max-width: 300px;
+        font-family: monospace;
+        font-size: 12px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      `;
+            qrDiv.innerHTML = `
+        <div style="font-weight: bold; margin-bottom: 10px;">
+          🔗 Pocket Wallet (${network})
+        </div>
+        <div style="margin-bottom: 10px;">
+          📱 Scan this with your Pocket Wallet app:
+        </div>
+        <div style="word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 4px;">
+          ${qrPayload}
+        </div>
+        <button onclick="this.parentElement.remove()" style="margin-top: 10px; padding: 5px 10px; cursor: pointer;">
+          Close
+        </button>
+      `;
+            document.body.appendChild(qrDiv);
+        }
+    }
 }
 //# sourceMappingURL=index.js.map

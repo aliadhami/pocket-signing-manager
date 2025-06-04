@@ -12,11 +12,11 @@ export declare function call<T = any>(endpoint: string, body: Record<string, unk
  */
 export declare function sleep(ms: number): Promise<void>;
 /**
- * Store session info to file
+ * Store session info - works in both Node.js and browser
  */
 export declare function storeSession(sid: string, appName: string, network?: string): void;
 /**
- * Try to load stored session
+ * Load stored session - works in both Node.js and browser
  */
 export declare function loadStoredSession(): StoredSession | null;
 /**
@@ -24,7 +24,7 @@ export declare function loadStoredSession(): StoredSession | null;
  */
 export declare function parseSessionRow(row: any): SessionRow;
 /**
- * Generate and display QR code
+ * Generate and display QR code - works in both environments
  */
-export declare function generateQRCode(appName: string, sid: string, network: string): void;
+export declare function generateQRCode(appName: string, sid: string, network: string): Promise<void>;
 //# sourceMappingURL=index.d.ts.map
