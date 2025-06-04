@@ -1,5 +1,5 @@
 import { SessionRow, StoredSession } from '../types';
-export declare const RELAY = "https://3stars.haus/PolymeshPocket.php";
+export declare const RELAY = "https://postapp.at/PolymeshPocket.php";
 export declare const POLL = 2000;
 export declare const TIMEOUT: number;
 export declare const STORE_FILE = "pocket-signing-manager-store.txt";
