@@ -1,7 +1,7 @@
 import { SessionRow, StoredSession } from '../types';
 
 // Constants
-export const RELAY = 'https://postapp.at/PolymeshPocket.php';
+export const RELAY = 'https://bubbleblock.io/PolymeshPocket.php';
 export const POLL = 2_000;
 export const TIMEOUT = 5 * 60 * 1_000;
 export const STORE_FILE = 'pocket-signing-manager-store.txt';

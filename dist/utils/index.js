@@ -41,7 +41,7 @@ exports.loadStoredSession = loadStoredSession;
 exports.parseSessionRow = parseSessionRow;
 exports.generateQRCode = generateQRCode;
 // Constants
-exports.RELAY = 'https://postapp.at/PolymeshPocket.php';
+exports.RELAY = 'https://bubbleblock.io/PolymeshPocket.php';
 exports.POLL = 2000;
 exports.TIMEOUT = 5 * 60 * 1000;
 exports.STORE_FILE = 'pocket-signing-manager-store.txt';
