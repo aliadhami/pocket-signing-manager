@@ -235,8 +235,7 @@ exports.PocketSigner = PocketSigner;
 class PocketSigningManager {
     /**
      * Create a Pocket Signing Manager
-     *
-     * @param appName - name of the application
+     * * @param appName - name of the application
      * @param args.network - network to use ('testnet' or 'mainnet')
      * @param args.ss58Format - SS58 format for addresses
      */
