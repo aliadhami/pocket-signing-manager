@@ -44,50 +44,56 @@ class PocketSigner {
         const dataU8a = signable.toU8a(true);
         const requestId = (0, uuid_1.v4)();
         console.log(`[DEBUG] Creating signing request ${requestId} for payload on ${this.network}`);
+        await (0, utils_1.call)('create_signing_request', {
+            session_id: this.sid,
+            req_id: requestId,
+            payload_hex: (0, util_1.u8aToHex)(dataU8a),
+            address: payload.address,
+            node_url: (_a = this.nodeUrl) !== null && _a !== void 0 ? _a : '',
+            network: this.network
+        });
+        console.log(`[DEBUG] Request ${requestId} created, waiting for signature...`);
+        (0, utils_1.showSigningPopup)();
         try {
-            await (0, utils_1.call)('create_signing_request', {
-                session_id: this.sid,
-                req_id: requestId,
-                payload_hex: (0, util_1.u8aToHex)(dataU8a),
-                address: payload.address,
-                node_url: (_a = this.nodeUrl) !== null && _a !== void 0 ? _a : '',
-                network: this.network
-            });
-            console.log(`[DEBUG] Request ${requestId} created, waiting for signature...`);
             const signature = await this.waitForSignature(requestId);
             console.log(`[DEBUG] Signature received for ${requestId}`);
-            await (0, utils_1.sleep)(1000);
-            return {
-                id: ++this.currentId,
-                signature
-            };
+            await (0, utils_1.sleep)(500);
+            return { id: ++this.currentId, signature };
         }
         catch (error) {
-            console.error(`[ERROR] Failed request ${requestId}:`, error);
+            console.error(`[ERROR] Failed signing request ${requestId}:`, error);
             throw error;
+        }
+        finally {
+            (0, utils_1.hideSigningPopup)();
         }
     }
     async signRaw(raw) {
         var _a;
         const requestId = (0, uuid_1.v4)();
         console.log(`[DEBUG] Creating raw signing request ${requestId} on ${this.network}`);
+        await (0, utils_1.call)('create_signing_request', {
+            session_id: this.sid,
+            req_id: requestId,
+            payload_hex: raw.data,
+            address: raw.address,
+            node_url: (_a = this.nodeUrl) !== null && _a !== void 0 ? _a : '',
+            network: this.network
+        });
+        this.ensurePollingActive();
+        (0, utils_1.showSigningPopup)();
         try {
-            await (0, utils_1.call)('create_signing_request', {
-                session_id: this.sid,
-                req_id: requestId,
-                payload_hex: raw.data,
-                address: raw.address,
-                node_url: (_a = this.nodeUrl) !== null && _a !== void 0 ? _a : '',
-                network: this.network
-            });
-            this.ensurePollingActive();
             const signature = await this.waitForSignature(requestId);
             console.log(`[DEBUG] Received signature for raw request ${requestId}`);
+            await (0, utils_1.sleep)(500);
             return { id: ++this.currentId, signature };
         }
         catch (error) {
             console.error(`[ERROR] Failed raw signing request ${requestId}:`, error);
             throw error;
+        }
+        finally {
+            (0, utils_1.hideSigningPopup)();
         }
     }
     ensurePollingActive() {
@@ -135,8 +141,7 @@ class PocketSigner {
         });
         if (historyResp.success && Array.isArray(historyResp.request_history)) {
             for (const request of historyResp.request_history) {
-                if (request.req_id === reqId &&
-                    (!request.network || request.network === this.network)) {
+                if (request.req_id === reqId && (!request.network || request.network === this.network)) {
                     const pendingReq = this.pendingRequests.get(reqId);
                     if (!pendingReq || pendingReq.resolved) {
                         return;
@@ -197,14 +202,12 @@ class PocketSigner {
                         }
                     }
                 }
-                // Cleanup old processed signatures
                 if (this.processedSignatures.size > 100) {
                     const oldItems = Array.from(this.processedSignatures).slice(0, 50);
                     for (const item of oldItems) {
                         this.processedSignatures.delete(item);
                     }
                 }
-                // Clean up timed out requests
                 const now = Date.now();
                 for (const [reqId, request] of this.pendingRequests.entries()) {
                     if (now - request.timestamp > utils_1.TIMEOUT && !request.resolved) {
@@ -233,12 +236,6 @@ exports.PocketSigner = PocketSigner;
  * Main Pocket Signing Manager
  */
 class PocketSigningManager {
-    /**
-     * Create a Pocket Signing Manager
-     * * @param appName - name of the application
-     * @param args.network - network to use ('testnet' or 'mainnet')
-     * @param args.ss58Format - SS58 format for addresses
-     */
     static async create(args) {
         const { appName, network = 'testnet', ss58Format } = args;
         const signingManager = new PocketSigningManager(appName);
@@ -280,15 +277,10 @@ class PocketSigningManager {
         this.currentNetwork = network;
         this.externalSigner.setNetwork(network);
         if (this.sessionCreated) {
-            (0, utils_1.call)('update_session', {
-                session_id: this.sid,
-                network: this.currentNetwork
-            }).catch(e => console.error('Failed to update session network:', e));
+            (0, utils_1.call)('update_session', { session_id: this.sid, network: this.currentNetwork }).catch(e => console.error('Failed to update session network:', e));
         }
     }
-    setSs58Format(f) {
-        this.ss58 = f;
-    }
+    setSs58Format(f) { this.ss58 = f; }
     ss58OrThrow(m) {
         if (this.ss58 === undefined) {
             throw new Error(`Call setSs58Format before ${m}`);
@@ -314,10 +306,7 @@ class PocketSigningManager {
                         else if (Array.isArray(row.wallets) && row.wallets.length) {
                             networkWallets = row.wallets;
                             const walletField = this.currentNetwork === 'testnet' ? 'testnet_wallets' : 'mainnet_wallets';
-                            await (0, utils_1.call)('update_session', {
-                                session_id: this.sid,
-                                [walletField]: networkWallets
-                            });
+                            await (0, utils_1.call)('update_session', { session_id: this.sid, [walletField]: networkWallets });
                         }
                         if (networkWallets.length) {
                             this.wallets = networkWallets;
@@ -348,15 +337,8 @@ class PocketSigningManager {
         }
         return this.wallets;
     }
-    getExternalSigner() {
-        return this.externalSigner;
-    }
-    async getLocalKeys() {
-        return this.wallets.map(w => ({ name: 'wallet', publicKey: w, address: w }));
-    }
-    /**
-     * Internal method called by Polymesh SDK patch
-     */
+    getExternalSigner() { return this.externalSigner; }
+    async getLocalKeys() { return this.wallets.map(w => ({ name: 'wallet', publicKey: w, address: w })); }
     async __pocketSetNodeUrl(url) {
         this.nodeUrl = url;
         this.setNetwork(url.includes('mainnet') ? 'mainnet' : 'testnet');
@@ -370,10 +352,7 @@ class PocketSigningManager {
                     const row = (0, utils_1.parseSessionRow)(resp.session);
                     const detectedNetwork = url.includes('mainnet') ? 'mainnet' : 'testnet';
                     if (row.network !== detectedNetwork) {
-                        await (0, utils_1.call)('update_session', {
-                            session_id: this.sid,
-                            network: detectedNetwork
-                        });
+                        await (0, utils_1.call)('update_session', { session_id: this.sid, network: detectedNetwork });
                         this.currentNetwork = detectedNetwork;
                         this.externalSigner.setNetwork(detectedNetwork);
                     }
@@ -385,20 +364,11 @@ class PocketSigningManager {
         }
         this.externalSigner.setNodeUrl(url);
     }
-    /**
-     * Internal method called by Polymesh SDK patch
-     */
-    __pocketRegisterSdk(sdk) {
-        this.sdk = sdk;
-    }
+    __pocketRegisterSdk(sdk) { this.sdk = sdk; }
     async reconnectSession() {
         console.log(`Need to reconnect wallet for ${this.currentNetwork}. Generating new QR code for existing session...`);
         try {
-            await (0, utils_1.call)('create_session', {
-                session_id: this.sid,
-                origin_hash: 'cli',
-                network: this.currentNetwork
-            });
+            await (0, utils_1.call)('create_session', { session_id: this.sid, origin_hash: 'cli', network: this.currentNetwork });
             this.sessionCreated = true;
         }
         catch (error) {
@@ -408,11 +378,7 @@ class PocketSigningManager {
     }
     async bootstrap() {
         try {
-            await (0, utils_1.call)('create_session', {
-                session_id: this.sid,
-                origin_hash: 'cli',
-                network: this.currentNetwork
-            });
+            await (0, utils_1.call)('create_session', { session_id: this.sid, origin_hash: 'cli', network: this.currentNetwork });
             this.sessionCreated = true;
             (0, utils_1.generateQRCode)(this.appName, this.sid, this.currentNetwork);
         }
@@ -449,16 +415,12 @@ class PocketSigningManager {
                             }
                             if (!networkWallets.length && Array.isArray(row.wallets) && row.wallets.length) {
                                 networkWallets = row.wallets;
-                                await (0, utils_1.call)('update_session', {
-                                    session_id: this.sid,
-                                    [walletField]: networkWallets
-                                });
+                                await (0, utils_1.call)('update_session', { session_id: this.sid, [walletField]: networkWallets });
                             }
                             if (networkWallets.length) {
                                 this.wallets = networkWallets;
                                 console.log(`✅ ${this.currentNetwork} wallet connected:`, this.wallets);
                                 (0, utils_1.storeSession)(this.sid, this.appName, this.currentNetwork);
-                                // Dispatch a success event so the UI can react.
                                 document.body.dispatchEvent(new CustomEvent('pocket-connection-success'));
                                 return;
                             }
@@ -473,7 +435,6 @@ class PocketSigningManager {
             throw new Error(`Pairing timeout – user did not approve ${this.currentNetwork} wallet`);
         }
         finally {
-            // IMPORTANT: Clean up the event listener to prevent memory leaks
             document.body.removeEventListener('pocket-connection-cancelled', handleCancel);
         }
     }

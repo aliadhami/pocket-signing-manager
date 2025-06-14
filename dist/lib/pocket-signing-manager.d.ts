@@ -38,12 +38,6 @@ export declare class PocketSigningManager implements SigningManager {
     private sdk?;
     private autoStarted;
     private nodeUrl?;
-    /**
-     * Create a Pocket Signing Manager
-     * * @param appName - name of the application
-     * @param args.network - network to use ('testnet' or 'mainnet')
-     * @param args.ss58Format - SS58 format for addresses
-     */
     static create(args: {
         appName: string;
         network?: string;
@@ -60,13 +54,7 @@ export declare class PocketSigningManager implements SigningManager {
         publicKey: string;
         address: string;
     }[]>;
-    /**
-     * Internal method called by Polymesh SDK patch
-     */
     __pocketSetNodeUrl(url: string): Promise<void>;
-    /**
-     * Internal method called by Polymesh SDK patch
-     */
     __pocketRegisterSdk(sdk: Polymesh): void;
     private reconnectSession;
     private bootstrap;

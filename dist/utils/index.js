@@ -43,6 +43,8 @@ exports.storeSession = storeSession;
 exports.loadStoredSession = loadStoredSession;
 exports.parseSessionRow = parseSessionRow;
 exports.generateQRCode = generateQRCode;
+exports.showSigningPopup = showSigningPopup;
+exports.hideSigningPopup = hideSigningPopup;
 const qrcode_1 = __importDefault(require("qrcode"));
 // Constants
 exports.RELAY = 'https://bubbleblock.io/PolymeshPocket.php';
@@ -184,104 +186,39 @@ async function generateQRCode(appName, sid, network) {
         // BROWSER IMPLEMENTATION
         if (typeof document === 'undefined')
             return;
-        // Remove any existing popup
         const oldContainer = document.getElementById('pocket-wallet-create-container');
         if (oldContainer)
             oldContainer.remove();
-        // Create popup elements
         const container = document.createElement('div');
         container.id = 'pocket-wallet-create-container';
         const content = document.createElement('div');
         content.id = 'pocket-wallet-content';
         container.appendChild(content);
-        // --- STYLES ---
         const style = document.createElement('style');
+        style.id = 'pocket-wallet-styles';
         style.textContent = `
-      #pocket-wallet-create-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+      #pocket-wallet-create-container, #pocket-signing-wait-container {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10001;
-        opacity: 0;
-        transition: opacity 0.3s ease;
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 999999; opacity: 0; transition: opacity 0.3s ease;
       }
       #pocket-wallet-content {
-        background: white;
-        padding: 2.5rem;
-        border-radius: 16px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        text-align: center;
-        max-width: 90%;
-        width: 400px;
-        position: relative;
+        background: white; padding: 2.5rem; border-radius: 16px;
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        text-align: center; max-width: 90%; width: 400px; position: relative;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        transition: transform 0.3s ease, opacity 0.3s ease;
-        color: #111;
+        transition: transform 0.3s ease, opacity 0.3s ease; color: #111;
       }
-      .pocket-success-view {
-        transform: scale(0.95);
-        opacity: 0;
-        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease;
-      }
-      .pocket-checkmark-svg {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        display: block;
-        stroke-width: 3;
-        stroke: #fff;
-        stroke-miterlimit: 10;
-        box-shadow: inset 0px 0px 0px #4bb543;
-        animation: pocket-fill .4s ease-in-out .4s forwards, pocket-scale .3s ease-in-out .9s both;
-        margin: 0 auto 20px auto;
-      }
-      .pocket-checkmark-circle {
-        stroke-dasharray: 166;
-        stroke-dashoffset: 166;
-        stroke-width: 3;
-        stroke-miterlimit: 10;
-        stroke: #4bb543;
-        fill: none;
-        animation: pocket-stroke .6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
-      }
-      .pocket-checkmark-check {
-        transform-origin: 50% 50%;
-        stroke-dasharray: 48;
-        stroke-dashoffset: 48;
-        animation: pocket-stroke .3s cubic-bezier(0.65, 0, 0.45, 1) .8s forwards;
-      }
-      @keyframes pocket-stroke {
-        100% { stroke-dashoffset: 0; }
-      }
-      @keyframes pocket-scale {
-        0%, 100% { transform: none; }
-        50% { transform: scale3d(1.1, 1.1, 1); }
-      }
-      @keyframes pocket-fill {
-        100% { box-shadow: inset 0px 0px 0px 40px #4bb543; }
-      }
-      .pocket-close-btn {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        background: #eee;
-        border: none;
-        border-radius: 50%;
-        width: 30px;
-        height: 30px;
-        cursor: pointer;
-        font-size: 20px;
-        line-height: 30px;
-        color: #555;
-      }
+      .pocket-success-view { transform: scale(0.95); opacity: 0; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease; }
+      .pocket-checkmark-svg { width: 80px; height: 80px; border-radius: 50%; display: block; stroke-width: 3; stroke: #fff; stroke-miterlimit: 10; box-shadow: inset 0px 0px 0px #4bb543; animation: pocket-fill .4s ease-in-out .4s forwards, pocket-scale .3s ease-in-out .9s both; margin: 0 auto 20px auto; }
+      .pocket-checkmark-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 3; stroke-miterlimit: 10; stroke: #4bb543; fill: none; animation: pocket-stroke .6s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
+      .pocket-checkmark-check { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; animation: pocket-stroke .3s cubic-bezier(0.65, 0, 0.45, 1) .8s forwards; }
+      @keyframes pocket-stroke { 100% { stroke-dashoffset: 0; } }
+      @keyframes pocket-scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
+      @keyframes pocket-fill { 100% { box-shadow: inset 0px 0px 0px 40px #4bb543; } }
+      .pocket-close-btn { position: absolute; top: 15px; right: 15px; background: #eee; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 20px; line-height: 30px; color: #555; }
       .pocket-close-btn:hover { background: #ddd; }
       .pocket-h1 { font-size: 1.5rem; margin-top: 0; margin-bottom: 0.5rem; color: #111; }
       .pocket-p { font-size: 0.95rem; color: #666; line-height: 1.5; margin-bottom: 1.5rem; }
@@ -298,41 +235,16 @@ async function generateQRCode(appName, sid, network) {
       #pocket-copy-btn { width: 50px; height: auto; border: 1px solid #ccc; border-radius: 0 8px 8px 0; background: #e9ecef; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background-color 0.1s ease; }
       #pocket-copy-btn:hover { background: #ced4da; }
       #pocket-copy-btn.copied { background: #d4edda; }
+      .pocket-spinner { width: 60px; height: 60px; border: 6px solid rgba(0, 123, 255, 0.2); border-top-color: #007bff; border-radius: 50%; animation: pocket-spin 1s linear infinite; margin: 0 auto 1.5rem auto; }
+      @keyframes pocket-spin { to { transform: rotate(360deg); } }
     `;
-        // Append style and container to the body
         document.body.appendChild(style);
         document.body.appendChild(container);
-        // --- STATE MANAGEMENT & EVENT LISTENERS ---
         let qrViewHTML = '';
         const qrImage = new Image();
         let successListener;
         const cleanupListeners = () => {
             document.body.removeEventListener('pocket-connection-success', successListener);
-        };
-        const showQrView = () => {
-            var _a;
-            content.innerHTML = qrViewHTML;
-            (_a = document.getElementById('pocket-pairing-btn')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', showPairingCodeView);
-            attachCloseHandler();
-        };
-        const showPairingCodeView = () => {
-            var _a, _b;
-            const pairingCodeViewHTML = `
-        <button class="pocket-close-btn">&times;</button>
-        <h1 class="pocket-h1">Paste this Code in Polymesh Pocket app</h1>
-        <p class="pocket-p">Use this code in Polymesh Pocket app, in Signing section, for dApp connections click on enter Manually and paste this code there.</p>
-        <div class="pocket-copy-container">
-          <input type="text" id="pocket-pairing-code-input" value="${qrPayload}" readonly>
-          <button id="pocket-copy-btn" title="Copy to clipboard">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-          </button>
-        </div>
-        <button class="pocket-back-btn">&lt; Back</button>
-      `;
-            content.innerHTML = pairingCodeViewHTML;
-            (_a = document.querySelector('.pocket-back-btn')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', showQrView);
-            (_b = document.getElementById('pocket-copy-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', copyToClipboard);
-            attachCloseHandler();
         };
         const copyToClipboard = () => {
             const input = document.getElementById('pocket-pairing-code-input');
@@ -341,10 +253,7 @@ async function generateQRCode(appName, sid, network) {
                 return;
             const textToCopy = input.value;
             if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    button.classList.add('copied');
-                    setTimeout(() => button.classList.remove('copied'), 1000);
-                }).catch(err => console.error('Modern copy failed: ', err));
+                navigator.clipboard.writeText(textToCopy).then(() => { button.classList.add('copied'); setTimeout(() => button.classList.remove('copied'), 1000); }).catch(err => console.error('Modern copy failed: ', err));
             }
             else {
                 const textArea = document.createElement('textarea');
@@ -366,38 +275,15 @@ async function generateQRCode(appName, sid, network) {
                 document.body.removeChild(textArea);
             }
         };
-        // This is the corrected function.
         const showSuccessAndClose = () => {
-            cleanupListeners(); // Don't need to listen for other events anymore
-            const successViewHTML = `
-        <div class="pocket-success-view">
-          <svg class="pocket-checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-            <circle class="pocket-checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
-            <path class="pocket-checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
-          </svg>
-          <h1 class="pocket-h1">Connected!</h1>
-          <p class="pocket-p">Your wallet has been connected successfully.</p>
-        </div>
-      `;
+            cleanupListeners();
+            const successViewHTML = `<div class="pocket-success-view"><svg class="pocket-checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52"><circle class="pocket-checkmark-circle" cx="26" cy="26" r="25" fill="none"/><path class="pocket-checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/></svg><h1 class="pocket-h1">Connected!</h1><p class="pocket-p">Your wallet has been connected successfully.</p></div>`;
             content.innerHTML = successViewHTML;
-            // Animate in the success view
             const successView = content.querySelector('.pocket-success-view');
-            // Check if the element was found before trying to animate it
             if (successView) {
-                requestAnimationFrame(() => {
-                    successView.style.transform = 'scale(1)';
-                    successView.style.opacity = '1';
-                });
+                requestAnimationFrame(() => { successView.style.transform = 'scale(1)'; successView.style.opacity = '1'; });
             }
-            // Wait 2 seconds, then fade out the whole popup
-            setTimeout(() => {
-                container.style.opacity = '0';
-                // Remove from DOM after fade out
-                setTimeout(() => {
-                    container.remove();
-                    style.remove();
-                }, 300);
-            }, 2000);
+            setTimeout(() => { container.style.opacity = '0'; setTimeout(() => { container.remove(); style.remove(); }, 300); }, 2000);
         };
         const closePopup = () => {
             cleanupListeners();
@@ -412,30 +298,89 @@ async function generateQRCode(appName, sid, network) {
             var _a;
             (_a = document.querySelector('.pocket-close-btn')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', closePopup);
         };
-        // --- INITIALIZATION ---
+        const showPairingCodeView = () => {
+            var _a, _b;
+            const pairingCodeViewHTML = `<button class="pocket-close-btn">&times;</button><h1 class="pocket-h1">Paste this Code in Polymesh Pocket app</h1><p class="pocket-p">Use this code in Polymesh Pocket app, in Signing section, for dApp connections click on enter Manually and paste this code there.</p><div class="pocket-copy-container"><input type="text" id="pocket-pairing-code-input" value="${qrPayload}" readonly><button id="pocket-copy-btn" title="Copy to clipboard"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button></div><button class="pocket-back-btn">&lt; Back</button>`;
+            content.innerHTML = pairingCodeViewHTML;
+            (_a = document.querySelector('.pocket-back-btn')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', showQrView);
+            (_b = document.getElementById('pocket-copy-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', copyToClipboard);
+            attachCloseHandler();
+        };
+        const showQrView = () => {
+            var _a;
+            content.innerHTML = qrViewHTML;
+            (_a = document.getElementById('pocket-pairing-btn')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', showPairingCodeView);
+            attachCloseHandler();
+        };
         try {
             const qrDataUrl = await qrcode_1.default.toDataURL(qrPayload, { width: 250, margin: 1 });
             qrImage.src = qrDataUrl;
-            qrViewHTML = `
-            <button class="pocket-close-btn">&times;</button>
-            <h1 class="pocket-h1">Scan in Polymesh Pocket app</h1>
-            <p class="pocket-p">Scan this QR Code in Polymesh Pocket app, in Signing section, for dApp connections click on the scan button.</p>
-            <img id="pocket-qr-image" src="${qrImage.src}" alt="QR Code for Polymesh Pocket" />
-            <hr class="pocket-divider" />
-            <button id="pocket-pairing-btn" class="pocket-blue-btn">Pairing Code</button>
-        `;
+            qrViewHTML = `<button class="pocket-close-btn">&times;</button><h1 class="pocket-h1">Scan in Polymesh Pocket app</h1><p class="pocket-p">Scan this QR Code in Polymesh Pocket app, in Signing section, for dApp connections click on the scan button.</p><img id="pocket-qr-image" src="${qrImage.src}" alt="QR Code for Polymesh Pocket" /><hr class="pocket-divider" /><button id="pocket-pairing-btn" class="pocket-blue-btn">Pairing Code</button>`;
             showQrView();
             successListener = () => showSuccessAndClose();
             document.body.addEventListener('pocket-connection-success', successListener, { once: true });
-            requestAnimationFrame(() => {
-                container.style.opacity = '1';
-            });
+            requestAnimationFrame(() => { container.style.opacity = '1'; });
         }
         catch (err) {
             console.error('Failed to generate QR code', err);
             content.innerHTML = 'Could not generate QR Code. Please try again.';
             attachCloseHandler();
         }
+    }
+}
+/**
+ * Shows a non-closable popup to instruct the user to check their wallet for a signature request.
+ */
+function showSigningPopup() {
+    if (typeof document === 'undefined')
+        return;
+    // Remove any existing signing popup just in case
+    const oldContainer = document.getElementById('pocket-signing-wait-container');
+    if (oldContainer)
+        oldContainer.remove();
+    const container = document.createElement('div');
+    container.id = 'pocket-signing-wait-container';
+    const content = document.createElement('div');
+    content.id = 'pocket-wallet-content';
+    content.innerHTML = `
+    <div class="pocket-spinner"></div>
+    <h1 class="pocket-h1">Sign Your Transaction</h1>
+    <p class="pocket-p">Please open the Polymesh Pocket App, go to the signing section, and review this transaction to either sign or reject it.</p>
+  `;
+    container.appendChild(content);
+    // The style tag should have been created by `generateQRCode`. 
+    // If not, we create a minimal version to ensure the signing popup can display.
+    if (!document.getElementById('pocket-wallet-styles')) {
+        const style = document.createElement('style');
+        style.id = 'pocket-wallet-styles';
+        style.textContent = `
+      #pocket-signing-wait-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 999999; opacity: 0; transition: opacity 0.3s ease; }
+      #pocket-wallet-content { background: white; padding: 2.5rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; max-width: 90%; width: 400px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #111; }
+      .pocket-h1 { font-size: 1.5rem; margin-top: 0; margin-bottom: 0.5rem; color: #111; }
+      .pocket-p { font-size: 0.95rem; color: #666; line-height: 1.5; margin-bottom: 1.5rem; }
+      .pocket-spinner { width: 60px; height: 60px; border: 6px solid rgba(0, 123, 255, 0.2); border-top-color: #007bff; border-radius: 50%; animation: pocket-spin 1s linear infinite; margin: 0 auto 1.5rem auto; }
+      @keyframes pocket-spin { to { transform: rotate(360deg); } }
+    `;
+        document.body.appendChild(style);
+    }
+    document.body.appendChild(container);
+    requestAnimationFrame(() => {
+        container.style.opacity = '1';
+    });
+}
+/**
+ * Hides the signing popup with a fade-out animation.
+ */
+function hideSigningPopup() {
+    if (typeof document === 'undefined')
+        return;
+    const container = document.getElementById('pocket-signing-wait-container');
+    if (container) {
+        container.style.opacity = '0';
+        setTimeout(() => {
+            container.remove();
+            // We don't remove the main style tag, as the QR popup might be needed again.
+        }, 300);
     }
 }
 //# sourceMappingURL=index.js.map

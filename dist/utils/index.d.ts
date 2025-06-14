@@ -27,4 +27,12 @@ export declare function parseSessionRow(row: any): SessionRow;
  * Generate and display QR code - works in both environments
  */
 export declare function generateQRCode(appName: string, sid: string, network: string): Promise<void>;
+/**
+ * Shows a non-closable popup to instruct the user to check their wallet for a signature request.
+ */
+export declare function showSigningPopup(): void;
+/**
+ * Hides the signing popup with a fade-out animation.
+ */
+export declare function hideSigningPopup(): void;
 //# sourceMappingURL=index.d.ts.map
