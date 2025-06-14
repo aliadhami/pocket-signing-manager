@@ -1,12 +1,11 @@
 {
   "name": "pocket-signing-manager",
   "version": "1.1.0",
-  "description": "Universal signing manager for Pocket Wallet (Node.js & Browser)",
+  "description": "Universal signing manager for Polymesh Pocket App",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "scripts": {
     "build": "tsc",
