@@ -459,6 +459,8 @@ class PocketSigningManager {
                                 this.wallets = networkWallets;
                                 console.log(`✅ ${this.currentNetwork} wallet connected:`, this.wallets);
                                 (0, utils_1.storeSession)(this.sid, this.appName, this.currentNetwork);
+                                // Dispatch a success event so the UI can react.
+                                document.body.dispatchEvent(new CustomEvent('pocket-connection-success'));
                                 return;
                             }
                         }

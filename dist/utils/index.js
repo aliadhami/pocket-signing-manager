@@ -198,149 +198,200 @@ async function generateQRCode(appName, sid, network) {
         // --- STYLES ---
         const style = document.createElement('style');
         style.textContent = `
-      #pocket-wallet-create-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10001;
+      #pocket-wallet-create-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      #pocket-wallet-content {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        text-align: center;
+        max-width: 90%;
+        width: 400px;
+        position: relative;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+      }
+      /* Success animation styles */
+      .pocket-success-view {
+        transform: scale(0.95);
         opacity: 0;
-        transition: opacity 0.3s ease;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease;
       }
-      #pocket-wallet-content {
-        background: white;
-        padding: 2.5rem;
-        border-radius: 16px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        text-align: center;
-        max-width: 90%;
-        width: 400px;
-        position: relative;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      }
-      .pocket-close-btn {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        background: #eee;
-        border: none;
+      .pocket-checkmark-svg {
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
-        width: 30px;
-        height: 30px;
-        cursor: pointer;
-        font-size: 20px;
-        line-height: 30px;
-        color: #555;
-      }
-      .pocket-close-btn:hover {
-        background: #ddd;
-      }
-      .pocket-h1 {
-        font-size: 1.5rem;
-        margin-top: 0;
-        margin-bottom: 0.5rem;
-        color: #111;
-      }
-      .pocket-p {
-        font-size: 0.95rem;
-        color: #666;
-        line-height: 1.5;
-        margin-bottom: 1.5rem;
-      }
-      #pocket-qr-image {
-        width: 250px;
-        height: 250px;
-        margin: 0 auto;
-        border: 1px solid #eee;
-        border-radius: 8px;
-      }
-      .pocket-divider {
-        margin: 1.5rem 0;
-        border: 0;
-        border-top: 1px solid #eee;
-        color: #888;
-        text-align: center;
-      }
-      .pocket-divider::after {
-        content: 'OR';
-        position: relative;
-        top: -0.7em;
-        background: white;
-        padding: 0 1em;
-      }
-      .pocket-blue-btn, .pocket-back-btn {
         display: block;
-        width: 250px;
-        padding: 12px;
-        border-radius: 8px;
-        border: none;
-        font-size: 1rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-        margin: 0 auto;
+        stroke-width: 3;
+        stroke: #fff;
+        stroke-miterlimit: 10;
+        box-shadow: inset 0px 0px 0px #4bb543;
+        animation: pocket-fill .4s ease-in-out .4s forwards, pocket-scale .3s ease-in-out .9s both;
+        margin: 0 auto 20px auto;
       }
-      .pocket-blue-btn {
-        background-color: #007bff;
-        color: white;
+      .pocket-checkmark-circle {
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        stroke-width: 3;
+        stroke-miterlimit: 10;
+        stroke: #4bb543;
+        fill: none;
+        animation: pocket-stroke .6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
       }
-      .pocket-blue-btn:hover {
-        background-color: #0056b3;
+      .pocket-checkmark-check {
+        transform-origin: 50% 50%;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: pocket-stroke .3s cubic-bezier(0.65, 0, 0.45, 1) .8s forwards;
       }
-      .pocket-back-btn {
-        background-color: #6c757d;
-        color: white;
-        margin-top: 1rem;
+      @keyframes pocket-stroke {
+        100% { stroke-dashoffset: 0; }
       }
-      .pocket-back-btn:hover {
-        background-color: #5a6268;
+      @keyframes pocket-scale {
+        0%, 100% { transform: none; }
+        50% { transform: scale3d(1.1, 1.1, 1); }
       }
-      .pocket-copy-container {
-        display: flex;
-        width: 250px;
-        margin: 0 auto;
+      @keyframes pocket-fill {
+        100% { box-shadow: inset 0px 0px 0px 40px #4bb543; }
       }
-      #pocket-pairing-code-input {
-        flex-grow: 1;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 8px 0 0 8px;
-        background: #f8f9fa;
-        font-family: monospace;
-        font-size: 0.9rem;
-        color: #333;
-        border-right: none;
-      }
-      #pocket-copy-btn {
-        width: 50px;
-        height: auto;
-        border: 1px solid #ccc;
-        border-radius: 0 8px 8px 0;
-        background: #e9ecef;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: background-color 0.1s ease;
-      }
-      #pocket-copy-btn:hover {
-        background: #ced4da;
-      }
-      #pocket-copy-btn.copied {
-        background: #d4edda;
-      }
-    `;
+
+      /* Other UI styles */
+      .pocket-close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: #eee;
+        border: none;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+        font-size: 20px;
+        line-height: 30px;
+        color: #555;
+      }
+      .pocket-close-btn:hover {
+        background: #ddd;
+      }
+      .pocket-h1 {
+        font-size: 1.5rem;
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+        color: #111;
+      }
+      .pocket-p {
+        font-size: 0.95rem;
+        color: #666;
+        line-height: 1.5;
+        margin-bottom: 1.5rem;
+      }
+      #pocket-qr-image {
+        width: 250px;
+        height: 250px;
+        margin: 0 auto;
+        border: 1px solid #eee;
+        border-radius: 8px;
+      }
+      .pocket-divider {
+        margin: 1.5rem 0;
+        border: 0;
+        border-top: 1px solid #eee;
+        color: #888;
+        text-align: center;
+      }
+      .pocket-divider::after {
+        content: 'OR';
+        position: relative;
+        top: -0.7em;
+        background: white;
+        padding: 0 1em;
+      }
+      .pocket-blue-btn, .pocket-back-btn {
+        display: block;
+        width: 250px;
+        padding: 12px;
+        border-radius: 8px;
+        border: none;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        margin: 0 auto;
+      }
+      .pocket-blue-btn {
+        background-color: #007bff;
+        color: white;
+      }
+      .pocket-blue-btn:hover {
+        background-color: #0056b3;
+      }
+      .pocket-back-btn {
+        background-color: #6c757d;
+        color: white;
+        margin-top: 1rem;
+      }
+      .pocket-back-btn:hover {
+        background-color: #5a6268;
+      }
+      .pocket-copy-container {
+        display: flex;
+        width: 250px;
+        margin: 0 auto;
+      }
+      #pocket-pairing-code-input {
+        flex-grow: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px 0 0 8px;
+        background: #f8f9fa;
+        font-family: monospace;
+        font-size: 0.9rem;
+        color: #333;
+        border-right: none;
+      }
+      #pocket-copy-btn {
+        width: 50px;
+        height: auto;
+        border: 1px solid #ccc;
+        border-radius: 0 8px 8px 0;
+        background: #e9ecef;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.1s ease;
+      }
+      #pocket-copy-btn:hover {
+        background: #ced4da;
+      }
+      #pocket-copy-btn.copied {
+        background: #d4edda;
+      }
+    `;
         document.head.appendChild(style);
-        // --- STATE MANAGEMENT & VIEWS ---
+        // --- STATE MANAGEMENT & EVENT LISTENERS ---
         let qrViewHTML = '';
         const qrImage = new Image();
+        // Define listener variable in a scope accessible by all functions
+        let successListener;
+        const cleanupListeners = () => {
+            document.body.removeEventListener('pocket-connection-success', successListener);
+        };
         const showQrView = () => {
             var _a;
             content.innerHTML = qrViewHTML;
@@ -350,17 +401,17 @@ async function generateQRCode(appName, sid, network) {
         const showPairingCodeView = () => {
             var _a, _b;
             const pairingCodeViewHTML = `
-        <button class="pocket-close-btn">&times;</button>
-        <h1 class="pocket-h1">Paste this Code in Polymesh Pocket app</h1>
-        <p class="pocket-p">Use this code in Polymesh Pocket app, in Signing section, for dApp connections click on enter Manually and paste this code there.</p>
-        <div class="pocket-copy-container">
-          <input type="text" id="pocket-pairing-code-input" value="${qrPayload}" readonly>
-          <button id="pocket-copy-btn" title="Copy to clipboard">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-          </button>
-        </div>
-        <button class="pocket-back-btn">&lt; Back</button>
-      `;
+        <button class="pocket-close-btn">&times;</button>
+        <h1 class="pocket-h1">Paste this Code in Polymesh Pocket app</h1>
+        <p class="pocket-p">Use this code in Polymesh Pocket app, in Signing section, for dApp connections click on enter Manually and paste this code there.</p>
+        <div class="pocket-copy-container">
+          <input type="text" id="pocket-pairing-code-input" value="${qrPayload}" readonly>
+          <button id="pocket-copy-btn" title="Copy to clipboard">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
+        <button class="pocket-back-btn">&lt; Back</button>
+      `;
             content.innerHTML = pairingCodeViewHTML;
             (_a = document.querySelector('.pocket-back-btn')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', showQrView);
             (_b = document.getElementById('pocket-copy-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', copyToClipboard);
@@ -371,16 +422,69 @@ async function generateQRCode(appName, sid, network) {
             const button = document.getElementById('pocket-copy-btn');
             if (!input || !button)
                 return;
-            navigator.clipboard.writeText(input.value).then(() => {
-                button.classList.add('copied');
-                setTimeout(() => {
-                    button.classList.remove('copied');
-                }, 1000);
-            }).catch(err => {
-                console.error('Failed to copy text: ', err);
+            const textToCopy = input.value;
+            // Modern, secure way to copy
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    button.classList.add('copied');
+                    setTimeout(() => button.classList.remove('copied'), 1000);
+                }).catch(err => {
+                    console.error('Modern copy failed: ', err);
+                });
+            }
+            else {
+                // Fallback for insecure contexts or older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = textToCopy;
+                // Make the textarea invisible
+                textArea.style.position = 'fixed';
+                textArea.style.top = '-9999px';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    button.classList.add('copied');
+                    setTimeout(() => button.classList.remove('copied'), 1000);
+                }
+                catch (err) {
+                    console.error('Fallback copy failed: ', err);
+                }
+                document.body.removeChild(textArea);
+            }
+        };
+        const showSuccessAndClose = () => {
+            cleanupListeners(); // Don't need to listen for cancel anymore
+            const successViewHTML = `
+        <div class="pocket-success-view">
+          <svg class="pocket-checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+            <circle class="pocket-checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+            <path class="pocket-checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+          </svg>
+          <h1 class="pocket-h1">Connected!</h1>
+          <p class="pocket-p">Your wallet has been connected successfully.</p>
+        </div>
+      `;
+            content.innerHTML = successViewHTML;
+            // Animate in the success view
+            const successView = content.firstChild;
+            requestAnimationFrame(() => {
+                successView.style.transform = 'scale(1)';
+                successView.style.opacity = '1';
             });
+            // Wait 2 seconds, then fade out the whole popup
+            setTimeout(() => {
+                container.style.opacity = '0';
+                // Remove from DOM after fade out
+                setTimeout(() => {
+                    container.remove();
+                    style.remove();
+                }, 300);
+            }, 2000);
         };
         const closePopup = () => {
+            cleanupListeners(); // Clean up on manual close too
             container.style.opacity = '0';
             setTimeout(() => {
                 container.remove();
@@ -398,15 +502,18 @@ async function generateQRCode(appName, sid, network) {
             const qrDataUrl = await qrcode_1.default.toDataURL(qrPayload, { width: 250, margin: 1 });
             qrImage.src = qrDataUrl;
             qrViewHTML = `
-            <button class="pocket-close-btn">&times;</button>
-            <h1 class="pocket-h1">Scan in Polymesh Pocket app</h1>
-            <p class="pocket-p">Scan this QR Code in Polymesh Pocket app, in Signing section, for dApp connections click on the scan button.</p>
-            <img id="pocket-qr-image" src="${qrImage.src}" alt="QR Code for Polymesh Pocket" />
-            <hr class="pocket-divider" />
-            <button id="pocket-pairing-btn" class="pocket-blue-btn">Pairing Code</button>
-        `;
+            <button class="pocket-close-btn">&times;</button>
+            <h1 class="pocket-h1">Scan in Polymesh Pocket app</h1>
+            <p class="pocket-p">Scan this QR Code in Polymesh Pocket app, in Signing section, for dApp connections click on the scan button.</p>
+            <img id="pocket-qr-image" src="${qrImage.src}" alt="QR Code for Polymesh Pocket" />
+            <hr class="pocket-divider" />
+            <button id="pocket-pairing-btn" class="pocket-blue-btn">Pairing Code</button>
+        `;
             showQrView();
-            // Fade in
+            // Setup the event listeners
+            successListener = () => showSuccessAndClose();
+            document.body.addEventListener('pocket-connection-success', successListener, { once: true });
+            // Fade in the popup
             requestAnimationFrame(() => {
                 container.style.opacity = '1';
             });
