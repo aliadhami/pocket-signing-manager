@@ -425,44 +425,56 @@ class PocketSigningManager {
     async waitForConnection() {
         console.log(`⌛ waiting for ${this.currentNetwork} wallet approval …`);
         const started = Date.now();
-        while (Date.now() - started < utils_1.TIMEOUT) {
-            try {
-                const resp = await (0, utils_1.call)('get_session', { session_id: this.sid });
-                if (resp.session) {
-                    const row = (0, utils_1.parseSessionRow)(resp.session);
-                    if (row.status === 'connected') {
-                        let networkWallets = [];
-                        let walletField;
-                        if (this.currentNetwork === 'testnet') {
-                            networkWallets = Array.isArray(row.testnet_wallets) ? row.testnet_wallets : [];
-                            walletField = 'testnet_wallets';
-                        }
-                        else {
-                            networkWallets = Array.isArray(row.mainnet_wallets) ? row.mainnet_wallets : [];
-                            walletField = 'mainnet_wallets';
-                        }
-                        if (!networkWallets.length && Array.isArray(row.wallets) && row.wallets.length) {
-                            networkWallets = row.wallets;
-                            await (0, utils_1.call)('update_session', {
-                                session_id: this.sid,
-                                [walletField]: networkWallets
-                            });
-                        }
-                        if (networkWallets.length) {
-                            this.wallets = networkWallets;
-                            console.log(`✅ ${this.currentNetwork} wallet connected:`, this.wallets);
-                            (0, utils_1.storeSession)(this.sid, this.appName, this.currentNetwork);
-                            return;
+        let cancelled = false;
+        const handleCancel = () => { cancelled = true; };
+        document.body.addEventListener('pocket-connection-cancelled', handleCancel);
+        try {
+            while (Date.now() - started < utils_1.TIMEOUT) {
+                if (cancelled) {
+                    throw new Error('User cancelled the connection process.');
+                }
+                try {
+                    const resp = await (0, utils_1.call)('get_session', { session_id: this.sid });
+                    if (resp.session) {
+                        const row = (0, utils_1.parseSessionRow)(resp.session);
+                        if (row.status === 'connected') {
+                            let networkWallets = [];
+                            let walletField;
+                            if (this.currentNetwork === 'testnet') {
+                                networkWallets = Array.isArray(row.testnet_wallets) ? row.testnet_wallets : [];
+                                walletField = 'testnet_wallets';
+                            }
+                            else {
+                                networkWallets = Array.isArray(row.mainnet_wallets) ? row.mainnet_wallets : [];
+                                walletField = 'mainnet_wallets';
+                            }
+                            if (!networkWallets.length && Array.isArray(row.wallets) && row.wallets.length) {
+                                networkWallets = row.wallets;
+                                await (0, utils_1.call)('update_session', {
+                                    session_id: this.sid,
+                                    [walletField]: networkWallets
+                                });
+                            }
+                            if (networkWallets.length) {
+                                this.wallets = networkWallets;
+                                console.log(`✅ ${this.currentNetwork} wallet connected:`, this.wallets);
+                                (0, utils_1.storeSession)(this.sid, this.appName, this.currentNetwork);
+                                return;
+                            }
                         }
                     }
                 }
+                catch (error) {
+                    console.error('Error polling for connection:', error.message);
+                }
+                await (0, utils_1.sleep)(utils_1.POLL);
             }
-            catch (error) {
-                console.error('Error polling for connection:', error.message);
-            }
-            await (0, utils_1.sleep)(utils_1.POLL);
+            throw new Error(`Pairing timeout – user did not approve ${this.currentNetwork} wallet`);
         }
-        throw new Error(`Pairing timeout – user did not approve ${this.currentNetwork} wallet`);
+        finally {
+            // IMPORTANT: Clean up the event listener to prevent memory leaks
+            document.body.removeEventListener('pocket-connection-cancelled', handleCancel);
+        }
     }
 }
 exports.PocketSigningManager = PocketSigningManager;

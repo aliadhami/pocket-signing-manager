@@ -6,6 +6,6 @@ npm-package/
 coverage/
 test.ts
 docs/
-
+#package-lock.json
 #mychanges
 yarn.lock
